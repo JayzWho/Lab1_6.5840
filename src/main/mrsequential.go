@@ -6,13 +6,16 @@ package main
 // go run mrsequential.go wc.so pg*.txt
 //
 
-import "fmt"
-import "6.5840/mr"
-import "plugin"
-import "os"
-import "log"
-import "io/ioutil"
-import "sort"
+import (
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"plugin"
+	"sort"
+
+	"6.5840/mr"
+)
 
 // for sorting by key.
 type ByKey []mr.KeyValue
@@ -34,6 +37,7 @@ func main() {
 	// read each input file,
 	// pass it to Map,
 	// accumulate the intermediate Map output.
+	// there should be at least 3 args: mrsequential wc.so pg-1.txt pg-2.txt
 	//
 	intermediate := []mr.KeyValue{}
 	for _, filename := range os.Args[2:] {

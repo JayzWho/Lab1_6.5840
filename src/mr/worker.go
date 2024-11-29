@@ -24,17 +24,41 @@ func ihash(key string) int {
 // main/mrworker.go calls this function.
 func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
-
+	var input string
 	// Your worker implementation here.
 
 	// uncomment to send the Example RPC to the coordinator.
 	CallExample()
 
+	fmt.Print("Worker wants to get a task:")
+
+	fmt.Scanln(&input)
+	task := GetTask()
+	DisplayTask(&task)
+
+	//做map任务
+	//DoMapTask(&task, mapf)
 }
 
 // example function to show how to make an RPC call to the coordinator.
 //
 // the RPC argument and reply types are defined in rpc.go.
+// 获取任务
+func GetTask() Task {
+	args := TaskArgs{} // 为空
+	reply := Task{}
+	if ok := call("Coordinator.PullTask", &args, &reply); ok {
+		fmt.Printf("reply TaskId is %d\n", reply.TaskId)
+	} else {
+		fmt.Printf("call failed!\n")
+	}
+	return reply
+}
+
+func DisplayTask(task *Task) {
+	fmt.Printf("Received task, TaskId is %d\n", task.TaskId)
+}
+
 func CallExample() {
 
 	// declare an argument structure.

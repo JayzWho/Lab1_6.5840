@@ -1,10 +1,14 @@
 package mr
 
 import (
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"io/ioutil"
 	"log"
 	"net/rpc"
+	"os"
+	"strconv"
 )
 
 // Map functions return a slice of KeyValue.
@@ -37,7 +41,7 @@ func Worker(mapf func(string, string) []KeyValue,
 	DisplayTask(&task)
 
 	//做map任务
-	//DoMapTask(&task, mapf)
+	DoMapTask(&task, mapf)
 }
 
 // example function to show how to make an RPC call to the coordinator.
@@ -53,6 +57,48 @@ func GetTask() Task {
 		fmt.Printf("call failed!\n")
 	}
 	return reply
+}
+
+// 做Map任务
+func DoMapTask(task *Task, mapf func(string, string) []KeyValue) {
+	intermediate := []KeyValue{}
+
+	// 读取文件内容
+	fmt.Println("Opening file ", task.FileName)
+	file, err := os.Open(task.FileName)
+	if err != nil {
+		log.Fatalf("cannot open %v", task.FileName)
+	}
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Fatalf("cannot read %v", task.FileName)
+	}
+	file.Close()
+
+	// 执行map函数
+	reduceNum := task.ReduceNum
+	intermediate = mapf(task.FileName, string(content))
+	HashKv := make([][]KeyValue, reduceNum)
+	for _, v := range intermediate {
+		index := ihash(v.Key) % reduceNum
+		HashKv[index] = append(HashKv[index], v) // 将该kv键值对放入对应的下标
+	}
+	// 放入中间文件
+	for i := 0; i < reduceNum; i++ {
+		filename := "mr-tmp-" + strconv.Itoa(task.TaskId) + "-" + strconv.Itoa(i)
+		new_file, err := os.Create(filename)
+		if err != nil {
+			log.Fatal("create file failed:", err)
+		}
+		enc := json.NewEncoder(new_file) // 创建一个新的JSON编码器
+		for _, kv := range HashKv[i] {
+			err := enc.Encode(kv)
+			if err != nil {
+				log.Fatal("encode failed:", err)
+			}
+		}
+		new_file.Close()
+	}
 }
 
 func DisplayTask(task *Task) {
